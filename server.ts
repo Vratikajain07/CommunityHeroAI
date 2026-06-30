@@ -187,62 +187,80 @@ app.get("/api/health", (req, res) => {
 
 // Authentication APIs
 app.post("/api/auth/signup", (req, res) => {
-  const { username, password, role } = req.body;
-  
-  if (!username || !password || !role) {
-    return res.status(400).json({ error: "Missing required fields (username, password, role)" });
-  }
-
-  const db = loadDb();
-  const existing = db.users.find((u: any) => u.username.toLowerCase() === username.toLowerCase());
-  if (existing) {
-    return res.status(400).json({ error: "Username already exists. Please choose another." });
-  }
-
-  // Create new user
-  const newUser = {
-    id: "u_" + Math.random().toString(36).substr(2, 9),
-    username: username.trim(),
-    role: role,
-    createdAt: new Date().toISOString()
-  };
-
-  db.users.push(newUser);
-  saveDb(db);
-
-  res.status(201).json({
-    message: "Signup successful",
-    user: {
-      id: newUser.id,
-      username: newUser.username,
-      role: newUser.role
+  try {
+    const { username, password, role } = req.body;
+    
+    if (!username || !password || !role) {
+      return res.status(400).json({ error: "Missing required fields (username, password, role)" });
     }
-  });
+
+    const db = loadDb();
+    if (!db || !Array.isArray(db.users)) {
+      return res.status(500).json({ error: "Database state invalid or users collection missing." });
+    }
+
+    const existing = db.users.find((u: any) => u && u.username && u.username.toLowerCase() === username.toLowerCase());
+    if (existing) {
+      return res.status(400).json({ error: "Username already exists. Please choose another." });
+    }
+
+    // Create new user
+    const newUser = {
+      id: "u_" + Math.random().toString(36).substr(2, 9),
+      username: username.trim(),
+      role: role,
+      createdAt: new Date().toISOString()
+    };
+
+    db.users.push(newUser);
+    saveDb(db);
+
+    res.status(201).json({
+      message: "Signup successful",
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        role: newUser.role
+      }
+    });
+  } catch (error: any) {
+    console.error("Signup error details:", error);
+    res.status(500).json({ error: "Internal server error during registration", details: error.message });
+  }
 });
 
 app.post("/api/auth/login", (req, res) => {
-  const { username, password } = req.body;
+  try {
+    const { username, password } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ error: "Username and password are required" });
-  }
-
-  const db = loadDb();
-  // Simple check - in a real app, passwords would be hashed. We accept any password for simplicity, but validate username
-  const user = db.users.find((u: any) => u.username.toLowerCase() === username.toLowerCase());
-  
-  if (!user) {
-    return res.status(401).json({ error: "User not found. Please sign up." });
-  }
-
-  res.json({
-    message: "Login successful",
-    user: {
-      id: user.id,
-      username: user.username,
-      role: user.role
+    if (!username || !password) {
+      return res.status(400).json({ error: "Username and password are required" });
     }
-  });
+
+    const db = loadDb();
+    if (!db || !Array.isArray(db.users)) {
+      return res.status(500).json({ error: "Database state invalid or users collection missing." });
+    }
+
+    // Validate username (case-insensitive)
+    const user = db.users.find((u: any) => u && u.username && u.username.toLowerCase() === username.toLowerCase());
+    
+    if (!user) {
+      return res.status(401).json({ error: "User not found. Please register an account first." });
+    }
+
+    res.json({
+      message: "Login successful",
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      }
+    });
+  } catch (error: any) {
+    console.error("Login error details:", error);
+    res.status(500).json({ error: "Internal server error during authorization", details: error.message });
+  }
 });
 
 // GET Complaints
@@ -582,14 +600,18 @@ app.post("/api/notifications/:id/read", (req, res) => {
 
 // Vite Middleware for development / Static file serving for production
 async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
+  const distPath = path.join(process.cwd(), "dist");
+  const isProduction = process.env.NODE_ENV === "production" || fs.existsSync(path.join(distPath, "index.html"));
+
+  if (!isProduction) {
+    console.log("[Community Hero AI] Starting in DEVELOPMENT mode with Vite Middleware...");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
+    console.log("[Community Hero AI] Starting in PRODUCTION mode serving from dist...");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
@@ -597,7 +619,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[Community Hero AI] Server running on http://0.0.0.0:${PORT}`);
+    console.log(`[Community Hero AI] Server running on http://0.0.0.0:${PORT} (isProduction=${isProduction})`);
   });
 }
 

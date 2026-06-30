@@ -65,7 +65,17 @@ export default function AuthPage({ initialMode = "login", onAuthSuccess, onBackT
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password, role }),
         });
-        const data = await res.json();
+        
+        let data: any;
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await res.json();
+        } else {
+          const text = await res.text();
+          console.error("Non-JSON signup response:", text);
+          throw new Error("Invalid response from authorization server. Please register or sign in again.");
+        }
+
         if (!res.ok) {
           throw new Error(data.error || "Signup failed");
         }
@@ -81,7 +91,17 @@ export default function AuthPage({ initialMode = "login", onAuthSuccess, onBackT
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password }),
         });
-        const data = await res.json();
+
+        let data: any;
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await res.json();
+        } else {
+          const text = await res.text();
+          console.error("Non-JSON login response:", text);
+          throw new Error("Invalid response from authorization server. Please verify your credentials or register a new account.");
+        }
+
         if (!res.ok) {
           throw new Error(data.error || "Login failed");
         }
