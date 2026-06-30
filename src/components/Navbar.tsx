@@ -13,6 +13,7 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { User, Notification } from "../types";
+import { apiGetNotifications, apiMarkNotificationRead } from "../lib/api";
 
 interface NavbarProps {
   user: User;
@@ -28,11 +29,8 @@ export default function Navbar({ user, activeTab, setActiveTab, onLogout }: Navb
   // Fetch notifications
   const fetchNotifications = async () => {
     try {
-      const res = await fetch(`/api/notifications/${user.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data);
-      }
+      const data = await apiGetNotifications(user.id);
+      setNotifications(data);
     } catch (err) {
       console.error("Failed to fetch notifications", err);
     }
@@ -47,12 +45,10 @@ export default function Navbar({ user, activeTab, setActiveTab, onLogout }: Navb
 
   const markAsRead = async (id: string) => {
     try {
-      const res = await fetch(`/api/notifications/${id}/read`, { method: "POST" });
-      if (res.ok) {
-        setNotifications(prev =>
-          prev.map(n => n.id === id ? { ...n, read: true } : n)
-        );
-      }
+      await apiMarkNotificationRead(id);
+      setNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, read: true } : n)
+      );
     } catch (err) {
       console.error(err);
     }

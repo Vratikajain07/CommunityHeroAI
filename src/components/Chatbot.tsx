@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import GlassCard from "./GlassCard";
 import { User, ChatMessage } from "../types";
+import { apiChat } from "../lib/api";
 
 interface ChatbotProps {
   user: User;
@@ -60,26 +61,16 @@ What can I help you resolve today?`,
     setSending(true);
 
     try {
-      // Fetch response from server-side chatbot endpoint which feeds off active complaints db!
-      const res = await fetch("/api/chatbot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [...messages, userMsg],
-          userRole: user.role,
-          username: user.username
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Chatbot connection issue");
-      }
+      const chatHistory = messages.map(m => ({
+        role: m.role,
+        content: m.text
+      }));
+      const data = await apiChat(textToSend, chatHistory);
 
       setMessages(prev => [...prev, {
-        id: "m_" + Math.random().toString(36).substr(2, 9),
+        id: "m_" + Math.random().toString(36).substring(2, 11),
         role: "model",
-        text: data.text || "No response received",
+        text: data.reply || "No response received",
         createdAt: new Date().toISOString()
       }]);
     } catch (err: any) {

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import GlassCard from "./GlassCard";
 import { User, UserRole } from "../types";
+import { apiSignup, apiLogin } from "../lib/api";
 
 interface AuthPageProps {
   initialMode?: "login" | "signup";
@@ -60,52 +61,13 @@ export default function AuthPage({ initialMode = "login", onAuthSuccess, onBackT
 
     try {
       if (mode === "signup") {
-        const res = await fetch("/api/auth/signup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password, role }),
-        });
-        
-        let data: any;
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          data = await res.json();
-        } else {
-          const text = await res.text();
-          console.error("Non-JSON signup response:", text);
-          throw new Error("Invalid response from authorization server. Please register or sign in again.");
-        }
-
-        if (!res.ok) {
-          throw new Error(data.error || "Signup failed");
-        }
-        
+        const data = await apiSignup(username, password, role);
         setSuccessMsg("Account successfully registered! Logging you in...");
         setTimeout(() => {
           onAuthSuccess(data.user);
         }, 1500);
-
       } else {
-        const res = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
-        });
-
-        let data: any;
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          data = await res.json();
-        } else {
-          const text = await res.text();
-          console.error("Non-JSON login response:", text);
-          throw new Error("Invalid response from authorization server. Please verify your credentials or register a new account.");
-        }
-
-        if (!res.ok) {
-          throw new Error(data.error || "Login failed");
-        }
-
+        const data = await apiLogin(username, password);
         onAuthSuccess(data.user);
       }
     } catch (err: any) {

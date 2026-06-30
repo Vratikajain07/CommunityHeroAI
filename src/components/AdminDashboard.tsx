@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import GlassCard from "./GlassCard";
 import { Complaint, User, ComplaintStatus, SeverityLevel } from "../types";
+import { apiUpdateStatus, apiDeleteComplaint } from "../lib/api";
 
 interface AdminDashboardProps {
   user: User;
@@ -61,16 +62,10 @@ export default function AdminDashboard({
   const handleUpdateStatus = async (id: string) => {
     if (!id) return;
     try {
-      const res = await fetch(`/api/complaints/${id}/status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: selectedStatus, comment: resolutionComment })
-      });
-      if (res.ok) {
-        onStatusUpdated();
-        setUpdatingId(null);
-        setResolutionComment("");
-      }
+      await apiUpdateStatus(id, selectedStatus, resolutionComment);
+      onStatusUpdated();
+      setUpdatingId(null);
+      setResolutionComment("");
     } catch (err) {
       console.error(err);
     }
@@ -82,10 +77,8 @@ export default function AdminDashboard({
       return;
     }
     try {
-      const res = await fetch(`/api/complaints/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        onStatusUpdated();
-      }
+      await apiDeleteComplaint(id);
+      onStatusUpdated();
     } catch (err) {
       console.error(err);
     }

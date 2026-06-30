@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import GlassCard from "./GlassCard";
 import { Complaint, SeverityLevel, ComplaintStatus, User } from "../types";
+import { apiGenerateLetter } from "../lib/api";
 
 interface ComplaintHistoryProps {
   user: User;
@@ -56,11 +57,8 @@ export default function ComplaintHistory({
     setGeneratingLetter(true);
     setLetterContent(null);
     try {
-      const res = await fetch(`/api/complaints/${id}/letter`, { method: "POST" });
-      if (res.ok) {
-        const data = await res.json();
-        setLetterContent(data.letter);
-      }
+      const data = await apiGenerateLetter(id);
+      setLetterContent(data.letter);
     } catch (err) {
       console.error(err);
     } finally {

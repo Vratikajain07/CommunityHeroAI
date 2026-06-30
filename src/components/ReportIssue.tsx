@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import GlassCard from "./GlassCard";
 import { User, SeverityLevel } from "../types";
+import { apiReportComplaint, apiAnalyzeImage } from "../lib/api";
 
 interface ReportIssueProps {
   user: User;
@@ -131,19 +132,11 @@ export default function ReportIssue({ user, onReportCreated, setActiveTab }: Rep
     setAnalyzing(true);
     setErrorMsg(null);
     try {
-      const res = await fetch("/api/complaints/analyze-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mimeType })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "AI Analysis failed");
-      }
+      const data = await apiAnalyzeImage(base64);
 
       // Populate predicted parameters
-      if (data.issueTitle) setIssueTitle(data.issueTitle);
-      if (data.description) setDescription(data.description);
+      if (data.suggestedTitle) setIssueTitle(data.suggestedTitle);
+      if (data.suggestedDescription) setDescription(data.suggestedDescription);
       if (data.category) {
         setCategory(data.category);
         setDepartment(autoAssignDepartment(data.category));
@@ -228,24 +221,15 @@ export default function ReportIssue({ user, onReportCreated, setActiveTab }: Rep
       description,
       category,
       severity,
-      confidence: analysisConfidence || 1.0,
-      department,
-      locationType,
       address,
       latitude: latitude || 37.7749,
       longitude: longitude || -122.4194,
-      imageUrl: imagePreview || "https://images.unsplash.com/photo-1599740831146-80a6b7db00b2?auto=format&fit=crop&q=80&w=600"
+      locationType,
+      base64Image: imagePreview || undefined
     };
 
     try {
-      const res = await fetch("/api/complaints", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) {
-        throw new Error("Failed to file complaint.");
-      }
+      await apiReportComplaint(payload);
       
       setSuccess(true);
       setTimeout(() => {

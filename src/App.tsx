@@ -10,6 +10,7 @@ import ComplaintHistory from "./components/ComplaintHistory";
 import AdminDashboard from "./components/AdminDashboard";
 import AboutHelp from "./components/AboutHelp";
 import Chatbot from "./components/Chatbot";
+import { apiGetComplaints } from "./lib/api";
 
 export default function App() {
   // Session User
@@ -49,11 +50,8 @@ export default function App() {
   // Fetch complaints
   const fetchComplaints = async () => {
     try {
-      const res = await fetch("/api/complaints");
-      if (res.ok) {
-        const data = await res.json();
-        setComplaints(data);
-      }
+      const data = await apiGetComplaints();
+      setComplaints(data);
     } catch (err) {
       console.error("Failed to load complaints from API", err);
     }
